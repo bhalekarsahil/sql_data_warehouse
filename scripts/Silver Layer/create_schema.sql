@@ -1,32 +1,32 @@
 /* ============================================================================
-Bronze Layer Specification:
+silver Layer Specification:
     Data type: Raw, unprocessed data
     Objective: Traceability & debugging (Never crash on load)
     Obj Type : Table
     Load Method: Full Load
-    Naming Convention: snake_case | bronze.<sourcesystem>_dataname
+    Naming Convention: snake_case | silver.<sourcesystem>_dataname
 ============================================================================ */
 
 -- ============================================================================
 -- 0. CLEANUP OBSOLETE TABLES (To avoid ghost objects in the database)
 -- ============================================================================
-IF OBJECT_ID('bronze.prd_info', 'U') IS NOT NULL
-    DROP TABLE bronze.prd_info;
+IF OBJECT_ID('silver.prd_info', 'U') IS NOT NULL
+    DROP TABLE silver.prd_info;
 GO
 
-IF OBJECT_ID('bronze.sales_details', 'U') IS NOT NULL
-    DROP TABLE bronze.sales_details;
+IF OBJECT_ID('silver.sales_details', 'U') IS NOT NULL
+    DROP TABLE silver.sales_details;
 GO
 
 
 -- ============================================================================
 -- 1. SOURCE SYSTEM: CRM | ENTITY: CUSTOMER INFO
 -- ============================================================================
-IF OBJECT_ID('bronze.crm_cust_info', 'U') IS NOT NULL
-    DROP TABLE bronze.crm_cust_info;
+IF OBJECT_ID('silver.crm_cust_info', 'U') IS NOT NULL
+    DROP TABLE silver.crm_cust_info;
 GO
 
-CREATE TABLE bronze.crm_cust_info
+CREATE TABLE silver.crm_cust_info
 (
     cst_id             INT,
     cst_key            NVARCHAR(50),
@@ -34,91 +34,98 @@ CREATE TABLE bronze.crm_cust_info
     cst_lastname       NVARCHAR(50),
     cst_marital_status NVARCHAR(50),
     cst_gndr           NVARCHAR(50),
-    cst_create_date   DATE           -- DEV NOTE: Kept as DATE assuming source extraction guarantees YYYY-MM-DD format.
+    cst_create_date   DATE,          -- DEV NOTE: Kept as DATE assuming source extraction guarantees YYYY-MM-DD format.
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
 -- ============================================================================
 -- 2. SOURCE SYSTEM: CRM | ENTITY: PRODUCT INFO
 -- ============================================================================
-IF OBJECT_ID('bronze.crm_prd_info', 'U') IS NOT NULL
-    DROP TABLE bronze.crm_prd_info;
+IF OBJECT_ID('silver.crm_prd_info', 'U') IS NOT NULL
+    DROP TABLE silver.crm_prd_info;
 GO
 
-CREATE TABLE bronze.crm_prd_info
+CREATE TABLE silver.crm_prd_info
 (
     prd_id       INT,
+    cat_id       NVARCHAR(50),
     prd_key      NVARCHAR(50),
     prd_nm       NVARCHAR(100),    
     prd_cost     DECIMAL(18, 4),      
-    prd_line     VARCHAR(5),         
+    prd_line     NVARCHAR(50),         
     prd_start_dt DATE,
-    prd_end_dt   DATE
+    prd_end_dt   DATE,
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
 -- ============================================================================
 -- 3. SOURCE SYSTEM: CRM | ENTITY: SALES DETAILS
 -- ============================================================================
-IF OBJECT_ID('bronze.crm_sales_details', 'U') IS NOT NULL
-    DROP TABLE bronze.crm_sales_details;
+IF OBJECT_ID('silver.crm_sales_details', 'U') IS NOT NULL
+    DROP TABLE silver.crm_sales_details;
 GO
 
-CREATE TABLE bronze.crm_sales_details
+CREATE TABLE silver.crm_sales_details
 (
     sls_ord_num  NVARCHAR(20),        
     sls_prd_key  NVARCHAR(50),       
     sls_cust_id  INT,
-    sls_order_dt INT,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates (e.g., YYYYMMDD) without failing.
-    sls_ship_dt  INT,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates without failing.
-    sls_due_dt   INT,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates without failing.
+    sls_order_dt DATE,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates (e.g., YYYYMMDD) without failing.
+    sls_ship_dt  DATE,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates without failing.
+    sls_due_dt   DATE,                 -- DEV NOTE: Kept as INT to safely load raw numeric dates without failing.
     sls_sales    DECIMAL(18, 2),    
     sls_quantity INT,
-    sls_price    DECIMAL(18, 2)    
+    sls_price    DECIMAL(18, 2),
+    dwh_create_date DATETIME2 DEFAULT GETDATE() 
 );
 GO
 
 -- ============================================================================
 -- 4. SOURCE SYSTEM: ERP (AZ12) | ENTITY: CUSTOMER MASTER
 -- ============================================================================
-IF OBJECT_ID('bronze.erp_cust_az12', 'U') IS NOT NULL
-    DROP TABLE bronze.erp_cust_az12;
+IF OBJECT_ID('silver.erp_cust_az12', 'U') IS NOT NULL
+    DROP TABLE silver.erp_cust_az12;
 GO
 
-CREATE TABLE bronze.erp_cust_az12
+CREATE TABLE silver.erp_cust_az12
 (
     cid   NVARCHAR(50),               
     bdate DATE,
-    gen   VARCHAR(15) 
+    gen   VARCHAR(15),
+    dwh_create_date DATETIME2 DEFAULT GETDATE() 
 );
 GO
 
 -- ============================================================================
 -- 5. SOURCE SYSTEM: ERP (A101) | ENTITY: LOCATION MASTER
 -- ============================================================================
-IF OBJECT_ID('bronze.erp_loc_a101', 'U') IS NOT NULL
-    DROP TABLE bronze.erp_loc_a101;
+IF OBJECT_ID('silver.erp_loc_a101', 'U') IS NOT NULL
+    DROP TABLE silver.erp_loc_a101;
 GO
 
-CREATE TABLE bronze.erp_loc_a101
+CREATE TABLE silver.erp_loc_a101
 (
     cid   NVARCHAR(50),               
-    cntry NVARCHAR(50)    
+    cntry NVARCHAR(50),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()  
 );
 GO
 
 -- ============================================================================
 -- 6. SOURCE SYSTEM: ERP (G1V2) | ENTITY: PRODUCT CATEGORY
 -- ============================================================================
-IF OBJECT_ID('bronze.erp_px_cat_g1v2', 'U') IS NOT NULL
-    DROP TABLE bronze.erp_px_cat_g1v2;
+IF OBJECT_ID('silver.erp_px_cat_g1v2', 'U') IS NOT NULL
+    DROP TABLE silver.erp_px_cat_g1v2;
 GO
 
-CREATE TABLE bronze.erp_px_cat_g1v2
+CREATE TABLE silver.erp_px_cat_g1v2
 (
     id          NVARCHAR(20),         
     cat         NVARCHAR(50),         
     subcat      NVARCHAR(50),        
-    maintenance VARCHAR(10)           
+    maintenance VARCHAR(10),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()           
 );
 GO
